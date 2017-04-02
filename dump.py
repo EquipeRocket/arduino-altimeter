@@ -3,10 +3,16 @@ import time
 import csv
 from termcolor import colored 
 import matplotlib.pyplot as plt
+from struct import unpack
+import numpy as np
+from binascii import unhexlify
+
+def decode_float(s):
+  return unpack('<f', unhexlify(s))[0]
 
 def printPreliminary(decimalData):
     print colored("Preliminary Data", 'yellow')
-    print colored(" Highest Altitude: %s" % max(decimalData), 'yellow')
+    print colored(" Highest Altitude: %.2f" % max(decimalData), 'yellow')
     print colored(" Number of Entries: %s" % len(decimalData), 'yellow')
 
 def createTableFile(decimalData):
@@ -17,8 +23,8 @@ def createTableFile(decimalData):
 
 def convertToDecimal(data, size):
     buffer = []
-    for i in xrange(int(size)/2):
-        buffer.append(int(data[i*16:16*(i+1)], 2))
+    for i in xrange(size/8):
+        buffer.append(float(decode_float(data[i*8:8*(i+1)])))
     return buffer
 
 def askToSerial(ser, question, delay):
@@ -27,23 +33,23 @@ def askToSerial(ser, question, delay):
     time.sleep(delay)
     return ser.read(ser.inWaiting())
 
-def createGraph(data):
+def createGraph(data, sampling, size):
     plt.figure()
-    plt.gca().set_position((.1, .3, .8, .6))
+    plt.gca().set_position((.12, .3, .8, .6))
     plt.title("Launch Profile - On-board Altimeter")
-    plt.plot(data)
+    plt.plot(np.linspace(start=0, stop=size/8/sampling, num=size/8), data)
     plt.xlabel("Time (Seconds)")
     plt.ylabel("Altitude (Meters)")
-    plt.figtext(.1, .07, "Rocket: Rock One, Lift-off Weight: 200g, Engine: v1.0\nLocation: Cornelio Procopio-PR, Date: March 5, 2017\nApogee: %d, Sample Rate: 10Sps" % (max(data)))
+    plt.figtext(.12, .07, "Rocket: Rock One\nLocation: Cornelio Procopio-PR, Date: March 5, 2017\nApogee: %.2fm, Sample Rate: %dSps" % (max(data), sampling))
     plt.savefig('./data/profile.png')
 
 # Initiate
 print colored("Altimeter Data Logger - Equipe Rocket 2017", 'blue')
 
 # Connection
-ser = serial.Serial('/dev/cu.usbmodem1411', 115200)
+ser = serial.Serial('/dev/cu.usbserial-A9CJZ11T', 115200)
 print colored("Connected to %s" % ser.name, 'green')
-time.sleep(5)
+ser.read(233)
 
 # Sanity Check
 print "Performing sanity check..."
@@ -55,16 +61,23 @@ else:
 
 # Get Data Size
 print "Getting log size..."
-size = askToSerial(ser, '3', 2)
-print colored(" Log size is %s bytes." % size, 'green')
+ser.write('3')
+size = int(ser.read(16), 2)
+print colored(" Log size is %sBits." % size, 'green')
+
+# Get Sample Rate
+print "Getting sample rate..."
+ser.write('4')
+sampling = int(ser.read(16), 2)
+print colored(" Sample rate is %sSps." % sampling, 'green')
 
 # Data Dumping
 print "Dumping the data..."
 ser.write('1')
-data = ser.read(int(size)*8)
+data = ser.read(size)
 
 # Data Validation
-if len(data) == (int(size)*8):
+if len(data) == (size):
     print colored(" Data received with the correct size.", 'green')
 else:
     print colored(" Data is corrupt.", 'red')
@@ -73,7 +86,7 @@ else:
 with open("data/data.s", "wb") as file:
     file.write(data)
 
-decimalData = convertToDecimal(data, size)  # Convert from binary to decimal.
+decimalData = convertToDecimal(data, size)  # Convert from hexadecimal to decimal.
 createTableFile(decimalData)                # Creates CSV.
-createGraph(decimalData)                    # Creates Altitude Graph.
+createGraph(decimalData, sampling, size)    # Creates Altitude Graph.
 printPreliminary(decimalData)               # Print preliminary data.
