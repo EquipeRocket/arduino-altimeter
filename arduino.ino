@@ -4,10 +4,11 @@
 #include "SPI.h"
 
 // MANUAL SETUP
-#define EEPROM_SIZE 1024  // EEPROM Max Size.
-#define INDICATOR_LED 13  // Main LED Indicator.
-#define DEBUG_SWITCH 4    // Toggle Switch Digital Pin.
-#define SAMPLING 1       // Samples Per Second.
+#define INTERNAL_EEPROM_SIZE 1024   // Internal EEPROM Max Size.
+#define EXTERNAL_EEPROM_SIZE 64000  // EEPROM Max Size.
+#define INDICATOR_LED 13            // Main LED Indicator.
+#define DEBUG_SWITCH 6              // Toggle Switch Digital Pin.
+#define SAMPLING 3                  // Samples Per Second.
 
 // DON'T TOUCH IN THE CODE BELOW
 BME280 barometer;
@@ -93,7 +94,7 @@ void setup() {
   barometer.begin();
   delay(50);
 
-  pinMode(DEBUG_SWITCH, INPUT);
+  pinMode(DEBUG_SWITCH, INPUT_PULLUP);
   pinMode(INDICATOR_LED, OUTPUT);
   
   EEPROM.get(EEPROM_SIZE-4, entriesCounter);
