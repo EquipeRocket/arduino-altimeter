@@ -5,7 +5,8 @@
 
 // MANUAL SETUP
 #define INTERNAL_EEPROM_SIZE 1024   // Internal EEPROM Max Size.
-#define EXTERNAL_EEPROM_SIZE 64000  // EEPROM Max Size.
+#define EXTERNAL_EEPROM_SIZE 64000  // External EEPROM Max Size.
+#define EXTERNAL_EPROM_ADDRS 0x50   // External EEPROM I2C Address.
 #define INDICATOR_LED 13            // Main LED Indicator.
 #define DEBUG_SWITCH 6              // Toggle Switch Digital Pin.
 #define SAMPLING 3                  // Samples Per Second.
@@ -41,13 +42,13 @@ void serialFloatPrint(float f) {
 void uploadMemory() {
   for(uint32_t i=0; i<entriesCounter; i++) {
     float f = 0.00f; 
-    EEPROM.get(i*sizeof(float), f);
+    EEPROM.get(i*sizeof(float), f); // External Memory
     serialFloatPrint(f);
   }
 }
 
 void updateEntriesCount(uint32_t count) {
-  EEPROM.put(EEPROM_SIZE-4, count);
+  EEPROM.put(0, count); // Internal Memory
 }
 
 void listenCommanader() {
@@ -71,7 +72,7 @@ void listenCommanader() {
       break;
       case '9':
         updateEntriesCount(0);
-        EEPROM.get(EEPROM_SIZE-4, entriesCounter);
+        EEPROM.get(0, entriesCounter); // Internal Memory
       break;
     }
     Serial.flush();
@@ -97,7 +98,7 @@ void setup() {
   pinMode(DEBUG_SWITCH, INPUT_PULLUP);
   pinMode(INDICATOR_LED, OUTPUT);
   
-  EEPROM.get(EEPROM_SIZE-4, entriesCounter);
+  EEPROM.get(0, entriesCounter); // Internal Memory
 
   if(digitalRead(DEBUG_SWITCH) == LOW) {
     digitalWrite(INDICATOR_LED, LOW); // Debug mode ON.
@@ -133,7 +134,7 @@ void loop() {
     Serial.print("Current Altitude (m): ");
     Serial.println(lastAlt);
 
-    EEPROM.put(entriesCounter*sizeof(float), lastAlt);
+    EEPROM.put(entriesCounter*sizeof(float), lastAlt); // External Memory
     entriesCounter++;
 
     updateEntriesCount(entriesCounter);
