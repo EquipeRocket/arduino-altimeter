@@ -1,5 +1,6 @@
 #include <EEPROM.h>
-#include "SparkFunBME280.h"
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP280.h>
 #include "Wire.h"
 #include "SPI.h"
 
@@ -12,7 +13,7 @@
 #define SAMPLING 1                  // Samples Per Second.
 
 // DON'T TOUCH IN THE CODE BELOW
-BME280 barometer;
+Adafruit_BMP280 bmp;
 
 float altReference = -900;
 uint32_t entriesCounter = 0;
@@ -122,17 +123,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Altimeter v1.0 - Equipe Rocket 2017");
   
-  barometer.settings.commInterface = I2C_MODE;
-  barometer.settings.I2CAddress = 0x76;
-  barometer.settings.runMode = 3;
-  barometer.settings.tStandby = 0;
-  barometer.settings.filter = 4;
-  barometer.settings.tempOverSample = 5;
-  barometer.settings.pressOverSample = 5;
-  barometer.settings.humidOverSample = 1;
-  delay(50);
-  barometer.begin();
-  delay(50);
+  if (!bmp.begin()) {  
+    Serial.println("Could not find a valid BMP280 sensor, check wiring!");
+    while (1);
+  }
 
   Wire.begin();
 
@@ -163,14 +157,12 @@ void loop() {
   if(debugMode) {
     listenCommanader();
   } else {
-    barometer.readTempC();
-
-    if(altReference==-900) {
-      altReference = barometer.readFloatAltitudeMeters();
+    if(altReference == -900) {
+      altReference = bmp.readPressure();
       delay(50);
     }
     
-    float lastAlt = barometer.readFloatAltitudeMeters() - altReference;
+    float lastAlt = bmp.readAltitude(altReference);
 
     Serial.print("Current Altitude (m): ");
     Serial.println(lastAlt);
@@ -180,6 +172,6 @@ void loop() {
 
     updateEntriesCount(entriesCounter);
 
-    delay(1000/SAMPLING);
+    delay(960/SAMPLING);
   }
 }
