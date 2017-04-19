@@ -8,11 +8,7 @@ Arduino Pro Mini with BMP280 based altimeter.
 - Lithium Polymer Battery.
 
 ### Dependencies 
-- SparkFun BME280 [Library](https://github.com/sparkfun/SparkFun_BME280_Breakout_Board).
+- Modified Adafruit BMP280 [Library](https://github.com/EquipeRocket/Adafruit_BMP280_Library).
+- Adafruit Sensor [Library](https://github.com/adafruit/Adafruit_Sensor).
 - [pySerial](https://pythonhosted.org/pyserial/).
 - [TermColor](https://pypi.python.org/pypi/termcolor).
-
-### Todo 
-- [ ] Add external EEPROM.
-- [ ] Add I/O tests.
-- [ ] Add battery voltage indicator.
