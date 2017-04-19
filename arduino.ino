@@ -159,6 +159,7 @@ void loop() {
   } else {
     if(altReference == -900) {
       altReference = bmp.readPressure();
+      altReference /= 100;
       delay(50);
     }
     
