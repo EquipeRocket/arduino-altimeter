@@ -7,10 +7,10 @@
 // MANUAL SETUP
 #define INTERNAL_EEPROM_SIZE 1024   // Internal EEPROM Max Size.
 #define EXTERNAL_EEPROM_SIZE 64000  // External EEPROM Max Size.
-#define EXTERNAL_EEPROM_ADDRS 0x50   // External EEPROM I2C Address.
+#define EXTERNAL_EEPROM_ADDRS 0x50  // External EEPROM I2C Address.
 #define INDICATOR_LED 13            // Main LED Indicator.
 #define DEBUG_SWITCH 6              // Toggle Switch Digital Pin.
-#define SAMPLING 1                  // Samples Per Second.
+#define SAMPLING 15                 // Samples Per Second.
 
 // DON'T TOUCH IN THE CODE BELOW
 Adafruit_BMP280 bmp;
@@ -165,11 +165,17 @@ void loop() {
     
     float lastAlt = bmp.readAltitude(altReference);
 
-    Serial.print("Current Altitude (m): ");
-    Serial.println(lastAlt);
+    if (0) {
+      Serial.print("Current Altitude (m): ");
+      Serial.println(lastAlt);
+    }
 
     writeToMemory(lastAlt, entriesCounter*sizeof(float));
     entriesCounter++;
+
+    if (entriesCounter*sizeof(float) >= EXTERNAL_EEPROM_SIZE) {
+      while(1);
+    }
 
     updateEntriesCount(entriesCounter);
 
