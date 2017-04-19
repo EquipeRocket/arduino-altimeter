@@ -47,7 +47,7 @@ def createGraph(data, sampling, size):
 print colored("Altimeter Data Logger - Equipe Rocket 2017", 'blue')
 
 # Connection
-ser = serial.Serial('/dev/cu.usbserial-A9CJZ11T', 115200)
+ser = serial.Serial('/dev/cu.usbserial-A700eSpX', 115200)
 print colored("Connected to %s" % ser.name, 'green')
 ser.read(233)
 
@@ -60,16 +60,16 @@ else:
     print colored(" CONN_NOT_OK", 'red')
 
 # Get Data Size
-print "Getting log size..."
+print "Getting sample size..."
 ser.write('3')
-size = int(ser.read(16), 2)
-print colored(" Log size is %sBits." % size, 'green')
+size = int(ser.read(16), 2)*8
+print colored(" Sample size is %s bytes." % (size*4/8), 'green')
 
 # Get Sample Rate
 print "Getting sample rate..."
 ser.write('4')
 sampling = int(ser.read(16), 2)
-print colored(" Sample rate is %sSps." % sampling, 'green')
+print colored(" Sample rate is %ssps." % sampling, 'green')
 
 # Data Dumping
 print "Dumping the data..."

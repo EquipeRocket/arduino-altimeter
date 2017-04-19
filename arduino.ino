@@ -4,10 +4,12 @@
 #include "SPI.h"
 
 // MANUAL SETUP
-#define EEPROM_SIZE 1024  // EEPROM Max Size.
-#define INDICATOR_LED 13  // Main LED Indicator.
-#define DEBUG_SWITCH 4    // Toggle Switch Digital Pin.
-#define SAMPLING 1       // Samples Per Second.
+#define INTERNAL_EEPROM_SIZE 1024   // Internal EEPROM Max Size.
+#define EXTERNAL_EEPROM_SIZE 64000  // External EEPROM Max Size.
+#define EXTERNAL_EEPROM_ADDRS 0x50   // External EEPROM I2C Address.
+#define INDICATOR_LED 13            // Main LED Indicator.
+#define DEBUG_SWITCH 6              // Toggle Switch Digital Pin.
+#define SAMPLING 1                  // Samples Per Second.
 
 // DON'T TOUCH IN THE CODE BELOW
 BME280 barometer;
@@ -15,6 +17,47 @@ BME280 barometer;
 float altReference = -900;
 uint32_t entriesCounter = 0;
 int debugMode = 0;
+
+void writeToMemory(float value, int addr) {
+  uint32_t input = *((uint32_t*)&value);
+
+  Wire.beginTransmission(EXTERNAL_EEPROM_ADDRS);
+  Wire.write((int)(addr >> 8));
+  Wire.write((int)(addr & 0xFF));
+  
+  for(int i=0; i<sizeof(input); i++) {
+    Wire.write((input >> 8*i) & 0x000000FF);
+  }
+
+  Wire.endTransmission();
+  delay(5);
+}
+
+float readFromMemory(int addr) {
+  uint32_t output = 0x00000000;
+
+  Wire.beginTransmission(EXTERNAL_EEPROM_ADDRS);
+  Wire.write((int)(addr >> 8));
+  Wire.write((int)(addr & 0xFF));
+  Wire.endTransmission();
+
+  Wire.requestFrom(EXTERNAL_EEPROM_ADDRS, 4);
+
+  uint8_t buffer[4] = { 0x00, 0x00, 0x00, 0x00 };
+  int readBytes = 0;
+  
+  while(Wire.available()) {
+    buffer[readBytes] = Wire.read();
+    readBytes++;
+  }
+  
+  for(int i=4; i>=0; i--) {
+    output = output << 8;
+    output |= buffer[i];
+  }
+
+  return *((float*)&output);
+}
 
 void serialIntPrint(uint16_t i) {
   for (unsigned int mask = 0x8000; mask; mask >>= 1) {
@@ -39,14 +82,12 @@ void serialFloatPrint(float f) {
 
 void uploadMemory() {
   for(uint32_t i=0; i<entriesCounter; i++) {
-    float f = 0.00f; 
-    EEPROM.get(i*sizeof(float), f);
-    serialFloatPrint(f);
+    serialFloatPrint(readFromMemory(i*sizeof(float)));
   }
 }
 
 void updateEntriesCount(uint32_t count) {
-  EEPROM.put(EEPROM_SIZE-4, count);
+  EEPROM.put(0, count); // Internal Memory
 }
 
 void listenCommanader() {
@@ -60,7 +101,7 @@ void listenCommanader() {
         Serial.print("CONN_OK");
       break;
       case '3':
-        serialIntPrint((uint16_t)(entriesCounter*8));
+        serialIntPrint((uint16_t)(entriesCounter));
       break;
       case '4':
         serialIntPrint((uint16_t)SAMPLING);
@@ -70,7 +111,7 @@ void listenCommanader() {
       break;
       case '9':
         updateEntriesCount(0);
-        EEPROM.get(EEPROM_SIZE-4, entriesCounter);
+        EEPROM.get(0, entriesCounter); // Internal Memory
       break;
     }
     Serial.flush();
@@ -93,10 +134,12 @@ void setup() {
   barometer.begin();
   delay(50);
 
-  pinMode(DEBUG_SWITCH, INPUT);
+  Wire.begin();
+
+  pinMode(DEBUG_SWITCH, INPUT_PULLUP);
   pinMode(INDICATOR_LED, OUTPUT);
   
-  EEPROM.get(EEPROM_SIZE-4, entriesCounter);
+  EEPROM.get(0, entriesCounter); // Internal Memory
 
   if(digitalRead(DEBUG_SWITCH) == LOW) {
     digitalWrite(INDICATOR_LED, LOW); // Debug mode ON.
@@ -104,7 +147,7 @@ void setup() {
     Serial.println("Available Commands:");
     Serial.println("1 - Dump Binary Data.");
     Serial.println("2 - Check Connection.");
-    Serial.println("3 - Read Memory Size.");
+    Serial.println("3 - Read Sample Size.");
     Serial.println("4 - Read Sample Rate.");
     Serial.println("5 - Toggle Stnd Mode.");
     Serial.println("9 - Reset Memory Alc.");
@@ -132,7 +175,7 @@ void loop() {
     Serial.print("Current Altitude (m): ");
     Serial.println(lastAlt);
 
-    EEPROM.put(entriesCounter*sizeof(float), lastAlt);
+    writeToMemory(lastAlt, entriesCounter*sizeof(float));
     entriesCounter++;
 
     updateEntriesCount(entriesCounter);
