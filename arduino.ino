@@ -173,6 +173,6 @@ void loop() {
 
     updateEntriesCount(entriesCounter);
 
-    delay(960/SAMPLING);
+    delay(950/SAMPLING);
   }
 }
