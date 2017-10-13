@@ -1,5 +1,5 @@
 # arduino-altimeter
-Arduino Pro Mini with BMP280 based altimeter. Altimeter test with in an elevator:
+Arduino Pro Mini with BMP280 based altimeter. Altimeter test in an elevator:
 ![](https://raw.githubusercontent.com/EquipeRocket/arduino-altimeter/master/data/profile.png)
 
 ### Hardware
